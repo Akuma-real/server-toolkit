@@ -106,13 +106,11 @@ server-toolkit --help
 
 > 说明：涉及写入 `/etc/*`、调用 `hostnamectl` 的操作通常需要 root 权限；建议使用 `sudo server-toolkit` 运行。
 
-- **设置主机名（一步式向导）**：
+- **设置主机名（一步式向导）**（系统管理仅保留此入口）：
   - 输入短主机名（short）与可选 FQDN
   - 预览将执行的动作后确认执行（支持 dry-run：仅展示计划，不落盘）
   - 若检测到 cloud-init，会提示是否写入 `preserve_hostname: true`（默认 **否**），用于防止重启后被 cloud-init 覆盖
   - 执行内容包含：设置主机名（`hostnamectl` + 写入 `/etc/hostname`）与更新 `/etc/hosts`
-- **配置 /etc/hosts（向导）**：仅更新 `/etc/hosts` 的主机名映射（优先替换 `127.0.1.1` 行，不存在则插入）
-- **Cloud-init 配置**：写入 `/etc/cloud/cloud.cfg.d/99-hostname-preserve.cfg`，设置 `preserve_hostname: true`
 
 #### 回滚/恢复
 

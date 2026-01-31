@@ -82,12 +82,6 @@ func buildMainMenu(subtitle string, cfg *internal.Config, logger *internal.Logge
 			{ID: "hostname", Label: i18n.T("hostname_setting"), Next: func(parent tui.MenuModel) tea.Model {
 				return NewHostnameWizard(parent, cfg, logger, true, true)
 			}},
-			{ID: "hosts", Label: i18n.T("hostname_hosts"), Next: func(parent tui.MenuModel) tea.Model {
-				return NewHostnameWizard(parent, cfg, logger, false, true)
-			}},
-			{ID: "cloudinit", Label: i18n.T("hostname_cloudinit"), Next: func(parent tui.MenuModel) tea.Model {
-				return NewCloudInitPreserveModel(parent, cfg, logger)
-			}},
 			{ID: "back", Label: i18n.T("menu_back"), Action: func() tea.Cmd { return func() tea.Msg { return tui.ParentMenuMsg{} } }},
 		},
 	).SetUnimplementedMessage(unimplemented)
