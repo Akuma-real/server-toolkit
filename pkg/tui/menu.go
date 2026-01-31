@@ -43,6 +43,12 @@ func (m MenuModel) Init() tea.Cmd {
 // Update 更新菜单状态
 func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case ParentMenuMsg:
+		if m.parent != nil {
+			return *m.parent, nil
+		}
+		return m, nil
+
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
