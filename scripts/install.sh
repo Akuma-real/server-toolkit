@@ -7,16 +7,42 @@ REPO="Akuma-real/server-toolkit"
 BINARY="server-toolkit"
 INSTALL_DIR="/usr/local/bin"
 
+# 参数
+NIGHTLY=false
+for arg in "$@"; do
+    case "$arg" in
+        --nightly)
+            NIGHTLY=true
+            ;;
+        -h|--help)
+            echo "Usage: install.sh [--nightly]"
+            echo ""
+            echo "  --nightly    安装 Nightly（pre-release）版本（仅支持 Linux/amd64）"
+            exit 0
+            ;;
+        *)
+            echo "未知参数: $arg"
+            echo "用法: install.sh [--nightly]"
+            exit 1
+            ;;
+    esac
+done
+
 # 检测系统
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 
-case $ARCH in
-    x86_64) ARCH="amd64" ;;
-    aarch64) ARCH="arm64" ;;
-    armv7l) ARCH="armv7" ;;
-    *) echo "不支持的架构: $ARCH"; exit 1 ;;
-esac
+if [ "$OS" != "linux" ]; then
+    echo "当前仅支持 Linux（检测到: $OS）"
+    exit 1
+fi
+
+if [ "$ARCH" != "x86_64" ]; then
+    echo "当前仅支持 amd64/x86_64（检测到: $ARCH）"
+    exit 1
+fi
+
+ARCH="amd64"
 
 # 检查是否已安装
 if command -v $BINARY >/dev/null 2>&1; then
@@ -30,7 +56,17 @@ fi
 
 # 获取最新版本
 echo "正在获取最新版本..."
-VERSION=$(curl -s https://api.github.com/repos/${REPO}/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+if [ "$NIGHTLY" = true ]; then
+    echo "你选择安装 Nightly（pre-release）版本，可能不稳定。"
+    read -p "是否继续？[y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 0
+    fi
+    VERSION=$(curl -s https://api.github.com/repos/${REPO}/releases/tags/nightly | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+else
+    VERSION=$(curl -s https://api.github.com/repos/${REPO}/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+fi
 
 if [ -z "$VERSION" ]; then
     echo "无法获取版本信息"

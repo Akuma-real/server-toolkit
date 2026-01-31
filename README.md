@@ -28,8 +28,19 @@
 
 ### 一键安装
 
+> 当前一键安装脚本仅支持 **Linux/amd64（x86_64）**。
 \`\`\`bash
 bash <(curl -sL https://raw.githubusercontent.com/Akuma-real/server-toolkit/main/scripts/install.sh)
+\`\`\`
+
+### 安装 Nightly（pre-release）
+
+Nightly 会随 `main` 分支更新，可能不稳定，建议仅用于测试验证。
+
+> 由于 `bash <(curl ...)` 不便传参，Nightly 推荐用 pipe 方式传入 `--nightly`：
+
+\`\`\`bash
+curl -fsSL https://raw.githubusercontent.com/Akuma-real/server-toolkit/main/scripts/install.sh | bash -s -- --nightly
 \`\`\`
 
 ### 从源码构建
