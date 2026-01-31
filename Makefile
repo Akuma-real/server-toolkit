@@ -33,7 +33,12 @@ test-integration:
 fmt:
 	@echo "Formatting code..."
 	go fmt ./...
-	goimports -w .
+	@if command -v goimports >/dev/null 2>&1; then \
+		goimports -w .; \
+	else \
+		echo "Warning: goimports not found; skipping. Install with:"; \
+		echo "  go install golang.org/x/tools/cmd/goimports@latest"; \
+	fi
 
 # 代码检查
 lint:
