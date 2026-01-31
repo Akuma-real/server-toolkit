@@ -29,9 +29,9 @@
 ### 一键安装
 
 > 当前一键安装脚本仅支持 **Linux/amd64（x86_64）**。
-\`\`\`bash
+```bash
 bash <(curl -sL https://raw.githubusercontent.com/Akuma-real/server-toolkit/main/scripts/install.sh)
-\`\`\`
+```
 
 ### 安装 Nightly（pre-release）
 
@@ -39,38 +39,38 @@ Nightly 会随 `main` 分支更新，可能不稳定，建议仅用于测试验�
 
 > 由于 `bash <(curl ...)` 不便传参，Nightly 推荐用 pipe 方式传入 `--nightly`：
 
-\`\`\`bash
+```bash
 curl -fsSL https://raw.githubusercontent.com/Akuma-real/server-toolkit/main/scripts/install.sh | bash -s -- --nightly
-\`\`\`
+```
 
 ### 从源码构建
 
-\`\`\`bash
+```bash
 git clone https://github.com/Akuma-real/server-toolkit.git
 cd server-toolkit
 make build
 sudo make install
-\`\`\`
+```
 
 ## 使用方法
 
 ### 启动 TUI 界面
 
-\`\`\`bash
+```bash
 server-toolkit
-\`\`\`
+```
 
 ### 命令行选项
 
-\`\`\`bash
+```bash
 server-toolkit --help
-\`\`\`
+```
 
 ## 配置
 
-配置文件位于 \`/etc/server-toolkit/config.json\`：
+配置文件位于 `/etc/server-toolkit/config.json`：
 
-\`\`\`json
+```json
 {
   "language": "zh_CN",
   "dry_run": false,
@@ -78,17 +78,17 @@ server-toolkit --help
   "auto_update": true,
   "log_path": "/var/log/server-toolkit.log"
 }
-\`\`\`
+```
 
 ### 配置说明
 
 | 选项 | 说明 | 可选值 |
 |------|------|--------|
-| \`language\` | 界面语言 | \`zh_CN\`, \`en_US\` |
-| \`dry_run\` | Dry-run 模式 | \`true\`, \`false\` |
-| \`log_level\` | 日志级别 | \`DEBUG\`, \`INFO\`, \`WARN\`, \`ERROR\` |
-| \`auto_update\` | 自动更新检查 | \`true\`, \`false\` |
-| \`log_path\` | 日志文件路径 | 任意有效路径 |
+| `language` | 界面语言 | `zh_CN`, `en_US` |
+| `dry_run` | Dry-run 模式 | `true`, `false` |
+| `log_level` | 日志级别 | `DEBUG`, `INFO`, `WARN`, `ERROR` |
+| `auto_update` | 自动更新检查 | `true`, `false` |
+| `log_path` | 日志文件路径 | 任意有效路径 |
 
 ## 功能模块
 
@@ -109,7 +109,7 @@ server-toolkit --help
 
 ### 目录结构
 
-\`\`\`
+```
 server-toolkit/
 ├── cmd/                    # 命令行入口
 ├── pkg/                    # 公共包
@@ -121,11 +121,11 @@ server-toolkit/
 ├── scripts/               # 构建脚本
 ├── test/                  # 测试
 └── .github/              # CI/CD
-\`\`\`
+```
 
 ### 运行测试
 
-\`\`\`bash
+```bash
 # 单元测试
 go test -v ./...
 
@@ -136,17 +136,17 @@ docker run --rm -v $(PWD):/app almalinux:9 sh -c "cd /app && go test ./..."
 # 覆盖率
 go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
-\`\`\`
+```
 
 ### 构建
 
-\`\`\`bash
+```bash
 # 当前平台
 make build
 
 # 交叉编译
 make build-all
-\`\`\`
+```
 
 ## 贡献
 
@@ -178,11 +178,3 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea) - 优秀的 TUI 框架
 - [kejilion.sh](https://github.com/kejilion/sh) - 灵感来源
-
-## 路线图
-
-- [ ] v0.1.0-beta.1 - 初始 Beta 版
-- [ ] v0.1.0 - 正式版发布
-- [ ] v0.2.0 - Docker 管理模块
-- [ ] v0.3.0 - Web 服务管理
-- [ ] v1.0.0 - 稳定版发布
