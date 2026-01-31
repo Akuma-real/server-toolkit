@@ -7,7 +7,7 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test-build:
@@ -41,15 +41,26 @@ jobs:
           VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo dev)"
           GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.version=${VERSION}" -o bin/server-toolkit-linux-amd64 ./cmd/server-toolkit
 
-      - name: Upload artifact (PR)
-        if: ${{ github.event_name == 'pull_request' }}
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: server-toolkit-linux-amd64
           path: bin/server-toolkit-linux-amd64
 
-      - name: Publish prerelease (push main)
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+  nightly:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: test-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: server-toolkit-linux-amd64
+          path: bin
+
+      - name: Publish prerelease (nightly)
         uses: ncipollo/release-action@v1
         with:
           tag: nightly
@@ -60,4 +71,3 @@ jobs:
           artifacts: bin/server-toolkit-linux-amd64
           artifactErrorsFailBuild: true
           generateReleaseNotes: true
-
