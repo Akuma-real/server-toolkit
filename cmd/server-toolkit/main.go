@@ -36,7 +36,7 @@ func main() {
 	logger := newLogger(cfg)
 
 	subtitle := buildSubtitle()
-	model := buildMainMenu(subtitle)
+	model := buildMainMenu(subtitle, cfg, logger)
 
 	if _, err := tea.NewProgram(model).Run(); err != nil {
 		logger.Error("TUI exited with error: %v", err)
@@ -72,16 +72,22 @@ func buildSubtitle() string {
 	return strings.Join(parts, "\n")
 }
 
-func buildMainMenu(subtitle string) tui.MenuModel {
+func buildMainMenu(subtitle string, cfg *internal.Config, logger *internal.Logger) tui.MenuModel {
 	unimplemented := i18n.T("menu_unimplemented")
 
 	systemMenu := tui.NewMenu(
 		i18n.T("menu_system"),
 		"",
 		[]tui.MenuItem{
-			{ID: "hostname", Label: i18n.T("hostname_setting")},
-			{ID: "hosts", Label: i18n.T("hostname_hosts")},
-			{ID: "cloudinit", Label: i18n.T("hostname_cloudinit")},
+			{ID: "hostname", Label: i18n.T("hostname_setting"), Next: func(parent tui.MenuModel) tea.Model {
+				return NewHostnameWizard(parent, cfg, logger, true, true)
+			}},
+			{ID: "hosts", Label: i18n.T("hostname_hosts"), Next: func(parent tui.MenuModel) tea.Model {
+				return NewHostnameWizard(parent, cfg, logger, false, true)
+			}},
+			{ID: "cloudinit", Label: i18n.T("hostname_cloudinit"), Next: func(parent tui.MenuModel) tea.Model {
+				return NewCloudInitPreserveModel(parent, cfg, logger)
+			}},
 			{ID: "back", Label: i18n.T("menu_back"), Action: func() tea.Cmd { return func() tea.Msg { return tui.ParentMenuMsg{} } }},
 		},
 	).SetUnimplementedMessage(unimplemented)

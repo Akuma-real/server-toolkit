@@ -28,16 +28,19 @@ func UpdateHosts(oldName, newName, fqdn string, mode UpdateMode, dryRun bool, lo
 	drm := internal.NewDryRunManager(dryRun, logger)
 
 	// 读取 /etc/hosts
+	var lines []string
 	file, err := os.Open(hostsFile)
 	if err != nil {
-		return fmt.Errorf("failed to open %s: %w", hostsFile, err)
-	}
-	defer file.Close()
-
-	var lines []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to open %s: %w", hostsFile, err)
+		}
+		// 文件不存在：视为新建
+	} else {
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			lines = append(lines, scanner.Text())
+		}
 	}
 
 	// 备份文件

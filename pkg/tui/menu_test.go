@@ -18,6 +18,22 @@ func TestMenuModel_EnterOnLeafShowsUnimplementedMessage(t *testing.T) {
 	assert.Contains(t, m2.View(), "TODO")
 }
 
+type stubModel struct{}
+
+func (stubModel) Init() tea.Cmd                       { return nil }
+func (stubModel) Update(tea.Msg) (tea.Model, tea.Cmd) { return stubModel{}, nil }
+func (stubModel) View() string                        { return "stub" }
+
+func TestMenuModel_EnterOnNextSwitchesModel(t *testing.T) {
+	m := NewMenu("t", "", []MenuItem{
+		{ID: "a", Label: "A", Next: func(parent MenuModel) tea.Model { return stubModel{} }},
+	})
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	_, ok := updated.(stubModel)
+	assert.True(t, ok)
+}
+
 func TestMenuModel_StatusClearedOnNavigation(t *testing.T) {
 	m := NewMenu("t", "", []MenuItem{
 		{ID: "a", Label: "A"},

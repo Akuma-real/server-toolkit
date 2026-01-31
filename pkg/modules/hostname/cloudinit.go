@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Akuma-real/server-toolkit/internal"
+	"github.com/Akuma-real/server-toolkit/pkg/system"
 )
 
 const (
@@ -65,14 +66,12 @@ func SetPreserveHostname(dryRun bool, logger *internal.Logger) error {
 
 	// 备份文件
 	if !dryRun {
-		if _, err := os.Stat(cfgPath); err == nil {
-			backupPath, err := BackupCloudInitFile(cfgPath)
-			if err != nil {
-				return fmt.Errorf("failed to backup %s: %w", cfgPath, err)
-			}
-			if backupPath != "" {
-				logger.Info("Backed up: %s -> %s", cfgPath, backupPath)
-			}
+		backupPath, err := system.BackupFile(cfgPath)
+		if err != nil {
+			return fmt.Errorf("failed to backup %s: %w", cfgPath, err)
+		}
+		if backupPath != "" {
+			logger.Info("Backed up: %s -> %s", cfgPath, backupPath)
 		}
 	}
 
@@ -88,7 +87,11 @@ func SetPreserveHostname(dryRun bool, logger *internal.Logger) error {
 		return fmt.Errorf("failed to create directory %s: %w", cloudInitCfgDir, err)
 	}
 
-	if err := os.WriteFile(cfgPath, []byte(content), 0644); err != nil {
+	perm := os.FileMode(0644)
+	if info, err := os.Stat(cfgPath); err == nil {
+		perm = info.Mode()
+	}
+	if err := system.SafeWrite(cfgPath, []byte(content), perm); err != nil {
 		return fmt.Errorf("failed to write %s: %w", cfgPath, err)
 	}
 
@@ -148,7 +151,7 @@ func PatchHostsTemplates(shortName, fqdn string, dryRun bool, logger *internal.L
 
 		// 备份模板
 		if !dryRun {
-			backupPath, err := BackupCloudInitFile(templateFile)
+			backupPath, err := system.BackupFile(templateFile)
 			if err != nil {
 				logger.Warn("Failed to backup %s: %v", templateFile, err)
 				continue
@@ -225,25 +228,9 @@ func patchTemplate(path, newLine string, dryRun bool, drm *internal.DryRunManage
 		return nil
 	}
 
-	return os.WriteFile(path, []byte(content), 0644)
-}
-
-// BackupCloudInitFile 备份 cloud-init 文件
-func BackupCloudInitFile(path string) (string, error) {
-	// 复制文件内容
-	file, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
+	perm := os.FileMode(0644)
+	if info, err := os.Stat(path); err == nil {
+		perm = info.Mode()
 	}
-
-	// 生成备份文件名
-	timestamp := fmt.Sprintf("%d", os.Getegid()) // 简化的时间戳
-	backupPath := path + ".bak." + timestamp
-
-	// 写入备份
-	if err := os.WriteFile(backupPath, file, 0644); err != nil {
-		return "", err
-	}
-
-	return backupPath, nil
+	return system.SafeWrite(path, []byte(content), perm)
 }

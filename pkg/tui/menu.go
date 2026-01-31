@@ -9,6 +9,7 @@ type MenuItem struct {
 	ID      string
 	Label   string
 	Submenu *MenuModel
+	Next    func(parent MenuModel) tea.Model
 	Action  func() tea.Cmd
 }
 
@@ -90,6 +91,10 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					choice.Submenu.parent = &m
 					return *choice.Submenu, nil
 				}
+				if choice.Next != nil {
+					m.status = ""
+					return choice.Next(m), nil
+				}
 				if choice.Action != nil {
 					m.status = ""
 					return m, choice.Action()
@@ -127,7 +132,7 @@ func (m MenuModel) View() string {
 		if i == m.cursor {
 			choiceLabel = CursorStyle.Render("> " + choiceLabel)
 		} else {
-			if choice.Submenu == nil && choice.Action == nil {
+			if choice.Submenu == nil && choice.Next == nil && choice.Action == nil {
 				choiceLabel = DimStyle.Render("  " + choiceLabel)
 			} else {
 				choiceLabel = NormalStyle.Render("  " + choiceLabel)
