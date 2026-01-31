@@ -2,15 +2,16 @@ package i18n
 
 var zhCN = map[string]string{
 	// 应用
-	"app_title":     "服务器运维工具箱",
-	"app_version":   "版本: %s",
-	"system_info":   "系统信息",
-	"menu_main":     "主菜单",
-	"menu_system":   "系统管理",
-	"menu_ssh":      "SSH 管理",
-	"menu_settings": "设置",
-	"menu_exit":     "退出",
-	"menu_back":     "返回主菜单",
+	"app_title":          "服务器运维工具箱",
+	"app_version":        "版本: %s",
+	"system_info":        "系统信息",
+	"menu_main":          "主菜单",
+	"menu_system":        "系统管理",
+	"menu_ssh":           "SSH 管理",
+	"menu_settings":      "设置",
+	"menu_exit":          "退出",
+	"menu_back":          "返回主菜单",
+	"menu_unimplemented": "该功能尚未实现",
 
 	// 主机名
 	"hostname_title":     "主机名设置",

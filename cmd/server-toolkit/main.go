@@ -73,6 +73,8 @@ func buildSubtitle() string {
 }
 
 func buildMainMenu(subtitle string) tui.MenuModel {
+	unimplemented := i18n.T("menu_unimplemented")
+
 	systemMenu := tui.NewMenu(
 		i18n.T("menu_system"),
 		"",
@@ -82,7 +84,7 @@ func buildMainMenu(subtitle string) tui.MenuModel {
 			{ID: "cloudinit", Label: i18n.T("hostname_cloudinit")},
 			{ID: "back", Label: i18n.T("menu_back"), Action: func() tea.Cmd { return func() tea.Msg { return tui.ParentMenuMsg{} } }},
 		},
-	)
+	).SetUnimplementedMessage(unimplemented)
 
 	sshMenu := tui.NewMenu(
 		i18n.T("menu_ssh"),
@@ -94,7 +96,7 @@ func buildMainMenu(subtitle string) tui.MenuModel {
 			{ID: "enable_service", Label: i18n.T("ssh_enable_service")},
 			{ID: "back", Label: i18n.T("menu_back"), Action: func() tea.Cmd { return func() tea.Msg { return tui.ParentMenuMsg{} } }},
 		},
-	)
+	).SetUnimplementedMessage(unimplemented)
 
 	settingsMenu := tui.NewMenu(
 		i18n.T("menu_settings"),
@@ -106,7 +108,7 @@ func buildMainMenu(subtitle string) tui.MenuModel {
 			{ID: "autoupdate", Label: i18n.T("settings_autoupdate")},
 			{ID: "back", Label: i18n.T("menu_back"), Action: func() tea.Cmd { return func() tea.Msg { return tui.ParentMenuMsg{} } }},
 		},
-	)
+	).SetUnimplementedMessage(unimplemented)
 
 	mainMenu := tui.NewMenu(
 		i18n.T("app_title"),

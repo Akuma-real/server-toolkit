@@ -2,15 +2,16 @@ package i18n
 
 var enUS = map[string]string{
 	// App
-	"app_title":     "Server Toolkit",
-	"app_version":   "Version: %s",
-	"system_info":   "System Information",
-	"menu_main":     "Main Menu",
-	"menu_system":   "System Management",
-	"menu_ssh":      "SSH Management",
-	"menu_settings": "Settings",
-	"menu_exit":     "Exit",
-	"menu_back":     "Back to Main Menu",
+	"app_title":          "Server Toolkit",
+	"app_version":        "Version: %s",
+	"system_info":        "System Information",
+	"menu_main":          "Main Menu",
+	"menu_system":        "System Management",
+	"menu_ssh":           "SSH Management",
+	"menu_settings":      "Settings",
+	"menu_exit":          "Exit",
+	"menu_back":          "Back to Main Menu",
+	"menu_unimplemented": "This feature is not implemented yet",
 
 	// Hostname
 	"hostname_title":     "Hostname Setup",

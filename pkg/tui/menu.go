@@ -20,7 +20,11 @@ type MenuModel struct {
 	cursor   int
 	selected string
 	parent   *MenuModel
-	quitting bool
+	status   string
+	// unimplementedMsg 用于当菜单项既没有 Submenu 也没有 Action 时的提示文本
+	//（由调用方注入，避免在 tui 包内硬编码 i18n 文案）
+	unimplementedMsg string
+	quitting         bool
 }
 
 // NewMenu 创建新菜单
@@ -31,6 +35,7 @@ func NewMenu(title, subtitle string, choices []MenuItem) MenuModel {
 		choices:  choices,
 		cursor:   0,
 		selected: "",
+		status:   "",
 		quitting: false,
 	}
 }
@@ -61,6 +66,7 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyUp, tea.KeyShiftTab:
+			m.status = ""
 			if m.cursor > 0 {
 				m.cursor--
 			} else {
@@ -68,6 +74,7 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case tea.KeyDown, tea.KeyTab:
+			m.status = ""
 			if m.cursor < len(m.choices)-1 {
 				m.cursor++
 			} else {
@@ -79,11 +86,16 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				choice := &m.choices[m.cursor]
 				m.selected = choice.ID
 				if choice.Submenu != nil {
+					m.status = ""
 					choice.Submenu.parent = &m
 					return *choice.Submenu, nil
 				}
 				if choice.Action != nil {
+					m.status = ""
 					return m, choice.Action()
+				}
+				if m.unimplementedMsg != "" {
+					m.status = m.unimplementedMsg
 				}
 			}
 		}
@@ -115,9 +127,18 @@ func (m MenuModel) View() string {
 		if i == m.cursor {
 			choiceLabel = CursorStyle.Render("> " + choiceLabel)
 		} else {
-			choiceLabel = NormalStyle.Render("  " + choiceLabel)
+			if choice.Submenu == nil && choice.Action == nil {
+				choiceLabel = DimStyle.Render("  " + choiceLabel)
+			} else {
+				choiceLabel = NormalStyle.Render("  " + choiceLabel)
+			}
 		}
 		content += choiceLabel + "\n"
+	}
+
+	// 状态提示（例如：未实现功能）
+	if m.status != "" {
+		content += "\n" + InfoStyle.Render(m.status) + "\n"
 	}
 
 	return BorderStyle.Width(62).Render(content)
@@ -126,6 +147,12 @@ func (m MenuModel) View() string {
 // SetParent 设置父菜单
 func (m MenuModel) SetParent(parent *MenuModel) MenuModel {
 	m.parent = parent
+	return m
+}
+
+// SetUnimplementedMessage 设置当选择“叶子菜单项”（无 Submenu/Action）时的提示文案
+func (m MenuModel) SetUnimplementedMessage(msg string) MenuModel {
+	m.unimplementedMsg = msg
 	return m
 }
 
