@@ -203,6 +203,7 @@ func (m *Manager) Install(keys []string, overwrite bool) (int, error) {
 		if err := os.MkdirAll(sshDir, 0700); err != nil {
 			return 0, fmt.Errorf("failed to create .ssh directory: %w", err)
 		}
+		_ = os.Chown(sshDir, userInfo.UID, userInfo.GID)
 	} else {
 		m.drm.LogFileOperation("Create directory", sshDir)
 	}
@@ -221,19 +222,10 @@ func (m *Manager) Install(keys []string, overwrite bool) (int, error) {
 		}
 	}
 
-	// 如果 overwrite，先清空文件
-	if overwrite {
-		if m.dryRun {
-			m.drm.LogOperation("Would clear authorized_keys")
-		} else {
-			if err := os.WriteFile(authKeysPath, []byte{}, 0600); err != nil {
-				return 0, fmt.Errorf("failed to clear authorized_keys: %w", err)
-			}
-		}
-	}
-
 	// 读取现有密钥
 	existingKeys := make(map[string]bool)
+	var finalKeys []string
+
 	if !overwrite {
 		if _, err := os.Stat(authKeysPath); err == nil {
 			file, err := os.Open(authKeysPath)
@@ -244,19 +236,23 @@ func (m *Manager) Install(keys []string, overwrite bool) (int, error) {
 					key := strings.TrimSpace(scanner.Text())
 					if key != "" {
 						existingKeys[key] = true
+						finalKeys = append(finalKeys, key)
 					}
 				}
 			}
 		}
 	}
 
-	// 追加新密钥
+	// 合并新密钥（去重）
 	added := 0
-	var newKeys []string
-
 	for _, key := range keys {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			continue
+		}
 		if !existingKeys[key] {
-			newKeys = append(newKeys, key)
+			existingKeys[key] = true
+			finalKeys = append(finalKeys, key)
 			added++
 		}
 	}
@@ -267,23 +263,15 @@ func (m *Manager) Install(keys []string, overwrite bool) (int, error) {
 		return 0, nil
 	}
 
-	// 写入新密钥
+	// 写入（原子替换）
+	content := strings.Join(finalKeys, "\n") + "\n"
 	if m.dryRun {
-		m.drm.LogOperation("Would append %d keys to authorized_keys", added)
+		m.drm.LogFileWrite(authKeysPath, content)
 		return added, nil
 	}
 
-	file, err := os.OpenFile(authKeysPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-	if err != nil {
-		return 0, fmt.Errorf("failed to open authorized_keys: %w", err)
-	}
-	defer file.Close()
-
-	for _, key := range newKeys {
-		if _, err := fmt.Fprintln(file, key); err != nil {
-			m.logger.Warn("Failed to write key: %v", err)
-			added--
-		}
+	if err := system.SafeWrite(authKeysPath, []byte(content), 0600); err != nil {
+		return 0, fmt.Errorf("failed to write authorized_keys: %w", err)
 	}
 
 	// 设置所有权
@@ -309,6 +297,9 @@ func (m *Manager) List() ([]string, error) {
 	// 读取文件
 	file, err := os.Open(authKeysPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{}, nil
+		}
 		return nil, fmt.Errorf("failed to open authorized_keys: %w", err)
 	}
 	defer file.Close()

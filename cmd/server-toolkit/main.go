@@ -90,10 +90,15 @@ func buildMainMenu(subtitle string, cfg *internal.Config, logger *internal.Logge
 		i18n.T("menu_ssh"),
 		"",
 		[]tui.MenuItem{
-			{ID: "install_keys", Label: i18n.T("ssh_install_keys")},
-			{ID: "list_keys", Label: i18n.T("ssh_list_keys")},
-			{ID: "disable_pwd", Label: i18n.T("ssh_disable_pwd")},
-			{ID: "enable_service", Label: i18n.T("ssh_enable_service")},
+			{ID: "install_keys", Label: i18n.T("ssh_install_keys"), Next: func(parent tui.MenuModel) tea.Model {
+				return NewSSHInstallKeysWizard(parent, cfg, logger)
+			}},
+			{ID: "list_keys", Label: i18n.T("ssh_list_keys"), Next: func(parent tui.MenuModel) tea.Model {
+				return NewSSHListKeysModel(parent, cfg, logger)
+			}},
+			{ID: "disable_pwd", Label: i18n.T("ssh_disable_pwd"), Next: func(parent tui.MenuModel) tea.Model {
+				return NewSSHDisablePasswordModel(parent, cfg, logger)
+			}},
 			{ID: "back", Label: i18n.T("menu_back"), Action: func() tea.Cmd { return func() tea.Msg { return tui.ParentMenuMsg{} } }},
 		},
 	).SetUnimplementedMessage(unimplemented)
