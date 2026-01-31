@@ -141,6 +141,24 @@ make build-all
 
 欢迎提交 Issue 和 Pull Request！
 
+### 提交信息规范（Conventional Commits）
+
+为便于生成清晰的提交历史与自动化发布/Changelog，建议提交信息遵循 Conventional Commits：<https://www.conventionalcommits.org/>。
+
+基本格式：
+
+```text
+<type>[optional scope][!]: <description>
+```
+
+常用 `type`：`feat`、`fix`、`docs`、`refactor`、`test`、`chore`、`ci`、`build`、`perf`、`style`、`revert`。
+
+示例：
+
+- `docs: update install instructions`
+- `fix(ssh): avoid duplicating authorized_keys entries`
+- `feat(tui)!: redesign main menu`
+
 ## 许可证
 
 MIT License - see [LICENSE](LICENSE) file for details
