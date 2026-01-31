@@ -33,6 +33,11 @@
 bash <(curl -sL https://raw.githubusercontent.com/Akuma-real/server-toolkit/main/scripts/install.sh)
 ```
 
+> 如果你在非交互环境（例如 CI、无 TTY）安装/更新，建议加 `--yes` 跳过确认提示：
+```bash
+bash <(curl -sL https://raw.githubusercontent.com/Akuma-real/server-toolkit/main/scripts/install.sh) --yes
+```
+
 ### 安装 Nightly（pre-release）
 
 Nightly 会随 `main` 分支更新，可能不稳定，建议仅用于测试验证。
@@ -41,6 +46,11 @@ Nightly 会随 `main` 分支更新，可能不稳定，建议仅用于测试验�
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Akuma-real/server-toolkit/main/scripts/install.sh | bash -s -- --nightly
+```
+
+> 若希望非交互自动确认（不提示 y/N），追加 `--yes`：
+```bash
+curl -fsSL https://raw.githubusercontent.com/Akuma-real/server-toolkit/main/scripts/install.sh | bash -s -- --nightly --yes
 ```
 
 ### 从源码构建

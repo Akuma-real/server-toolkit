@@ -1,7 +1,7 @@
 #!/bin/bash
 # server-toolkit 一键安装脚本
 
-set -e
+set -euo pipefail
 
 REPO="Akuma-real/server-toolkit"
 BINARY="server-toolkit"
@@ -9,24 +9,64 @@ INSTALL_DIR="/usr/local/bin"
 
 # 参数
 NIGHTLY=false
+YES=false
 for arg in "$@"; do
     case "$arg" in
         --nightly)
             NIGHTLY=true
             ;;
+        -y|--yes)
+            YES=true
+            ;;
         -h|--help)
-            echo "Usage: install.sh [--nightly]"
+            echo "Usage: install.sh [--nightly] [--yes]"
             echo ""
             echo "  --nightly    安装 Nightly（pre-release）版本（仅支持 Linux/amd64）"
+            echo "  --yes        非交互环境自动确认（不会再提示 y/N）"
             exit 0
             ;;
         *)
             echo "未知参数: $arg"
-            echo "用法: install.sh [--nightly]"
+            echo "用法: install.sh [--nightly] [--yes]"
             exit 1
             ;;
     esac
 done
+
+confirm() {
+    local prompt="$1"
+
+    if [ "$YES" = true ]; then
+        return 0
+    fi
+
+    if [ -t 0 ]; then
+        read -p "$prompt" -n 1 -r
+    elif [ -r /dev/tty ]; then
+        read -p "$prompt" -n 1 -r </dev/tty
+    else
+        echo "检测到非交互环境且无法读取 /dev/tty，请追加 --yes 以继续。"
+        return 1
+    fi
+
+    echo
+    [[ ${REPLY:-} =~ ^[Yy]$ ]]
+}
+
+as_root() {
+    if [ "${EUID:-0}" -eq 0 ]; then
+        "$@"
+        return
+    fi
+
+    if command -v sudo >/dev/null 2>&1; then
+        sudo "$@"
+        return
+    fi
+
+    echo "需要 root 权限（请用 root 运行或安装 sudo）。"
+    exit 1
+}
 
 # 检测系统
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -45,11 +85,9 @@ fi
 ARCH="amd64"
 
 # 检查是否已安装
-if command -v $BINARY >/dev/null 2>&1; then
+if command -v "$BINARY" >/dev/null 2>&1; then
     echo "server-toolkit 已安装"
-    read -p "是否要更新？[y/N] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    if ! confirm "是否要更新？[y/N] "; then
         exit 0
     fi
 fi
@@ -58,14 +96,22 @@ fi
 echo "正在获取最新版本..."
 if [ "$NIGHTLY" = true ]; then
     echo "你选择安装 Nightly（pre-release）版本，可能不稳定。"
-    read -p "是否继续？[y/N] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    if ! confirm "是否继续？[y/N] "; then
         exit 0
     fi
-    VERSION=$(curl -s https://api.github.com/repos/${REPO}/releases/tags/nightly | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+    VERSION="$(
+        curl -fsSL "https://api.github.com/repos/${REPO}/releases/tags/nightly" 2>/dev/null \
+            | sed -nE 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' \
+            | head -n 1 \
+            || true
+    )"
 else
-    VERSION=$(curl -s https://api.github.com/repos/${REPO}/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+    VERSION="$(
+        curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null \
+            | sed -nE 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' \
+            | head -n 1 \
+            || true
+    )"
 fi
 
 if [ -z "$VERSION" ]; then
@@ -78,14 +124,27 @@ echo "最新版本: $VERSION"
 # 下载
 URL="https://github.com/${REPO}/releases/download/${VERSION}/${BINARY}-${OS}-${ARCH}"
 echo "正在下载 $URL..."
-curl -fsSL "$URL" -o /tmp/$BINARY || {
+TMP_FILE="$(mktemp -t "${BINARY}.XXXXXX")"
+cleanup() {
+    rm -f "$TMP_FILE"
+}
+trap cleanup EXIT
+
+curl -fsSL "$URL" -o "$TMP_FILE" || {
     echo "下载失败"
     exit 1
 }
 
 # 安装
 echo "正在安装 $BINARY..."
-sudo install -m 0755 /tmp/$BINARY $INSTALL_DIR/
-rm -f /tmp/$BINARY
+TARGET_PATH="${INSTALL_DIR}/${BINARY}"
+if [ -f "$TARGET_PATH" ]; then
+    BACKUP_PATH="${TARGET_PATH}.bak.$(date +%Y%m%d%H%M%S)"
+    echo "检测到已存在的二进制，先备份到: $BACKUP_PATH"
+    as_root cp -a "$TARGET_PATH" "$BACKUP_PATH"
+fi
+
+as_root mkdir -p "$INSTALL_DIR"
+as_root install -m 0755 "$TMP_FILE" "$TARGET_PATH"
 
 echo "安装完成！运行 '$BINARY' 启动。"
