@@ -40,7 +40,7 @@ func NewUpdater(current string, logger *Logger) *Updater {
 
 // Check 检查更新
 func (u *Updater) Check() (string, bool, error) {
-	u.logger.Info(i18n.T("info"))
+	u.logger.Info("%s", i18n.T("info"))
 
 	resp, err := http.Get(apiURL)
 	if err != nil {
@@ -58,11 +58,11 @@ func (u *Updater) Check() (string, bool, error) {
 	}
 
 	if release.TagName != u.current {
-		u.logger.Info(i18n.T("info"), i18n.T("settings_title"), release.TagName)
+		u.logger.Info("%s %s %s", i18n.T("info"), i18n.T("settings_title"), release.TagName)
 		return release.TagName, true, nil
 	}
 
-	u.logger.Info(i18n.T("info"), i18n.T("info"))
+	u.logger.Info("%s %s", i18n.T("info"), i18n.T("info"))
 	return "", false, nil
 }
 
@@ -74,18 +74,18 @@ func (u *Updater) DoUpdate() error {
 	}
 
 	if !hasUpdate {
-		u.logger.Info(i18n.T("info"))
+		u.logger.Info("%s", i18n.T("info"))
 		return nil
 	}
 
-	u.logger.Info(i18n.T("info"), latest)
+	u.logger.Info("%s %s", i18n.T("info"), latest)
 
 	// 构建下载 URL
 	osName := runtime.GOOS
 	arch := runtime.GOARCH
 	downloadURL := fmt.Sprintf("%s/%s/server-toolkit-%s-%s", dlBase, latest, osName, arch)
 
-	u.logger.Info(i18n.T("log_fetching_url"), downloadURL)
+	u.logger.Info("%s", fmt.Sprintf(i18n.T("log_fetching_url"), downloadURL))
 
 	// 下载文件
 	resp, err := http.Get(downloadURL)
@@ -136,7 +136,7 @@ func (u *Updater) DoUpdate() error {
 		return fmt.Errorf(i18n.T("err_operation_failed"), err)
 	}
 
-	u.logger.Info(i18n.T("success"))
+	u.logger.Info("%s", i18n.T("success"))
 	return nil
 }
 

@@ -1,7 +1,5 @@
 package internal
 
-import ()
-
 // DryRunManager Dry-run 模式管理器
 type DryRunManager struct {
 	enabled bool
