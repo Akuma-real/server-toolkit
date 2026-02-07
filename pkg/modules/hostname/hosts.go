@@ -10,8 +10,13 @@ import (
 	"github.com/Akuma-real/server-toolkit/pkg/system"
 )
 
-const (
+var (
 	hostsFile = "/etc/hosts"
+)
+
+var (
+	backupFileFn = system.BackupFile
+	safeWriteFn  = system.SafeWrite
 )
 
 // UpdateMode 更新模式
@@ -41,11 +46,14 @@ func UpdateHosts(oldName, newName, fqdn string, mode UpdateMode, dryRun bool, lo
 		for scanner.Scan() {
 			lines = append(lines, scanner.Text())
 		}
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("failed to read %s: %w", hostsFile, err)
+		}
 	}
 
 	// 备份文件
 	if !dryRun {
-		backupPath, err := system.BackupFile(hostsFile)
+		backupPath, err := backupFileFn(hostsFile)
 		if err != nil {
 			return fmt.Errorf("failed to backup %s: %w", hostsFile, err)
 		}
@@ -62,16 +70,18 @@ func UpdateHosts(oldName, newName, fqdn string, mode UpdateMode, dryRun bool, lo
 	newLine += " " + newName
 
 	// 根据模式更新
-	var newLines []string
+	newLines := make([]string, 0, len(lines)+1)
 	updated := false
 
 	if mode == Replace127 {
 		// 替换 127.0.1.1 行
 		for _, line := range lines {
-			if strings.HasPrefix(line, "127.0.1.1") {
-				newLines = append(newLines, newLine)
-				updated = true
-				logger.Info("Updated %s: replaced 127.0.1.1 line", hostsFile)
+			if strings.HasPrefix(strings.TrimSpace(line), "127.0.1.1") {
+				if !updated {
+					newLines = append(newLines, newLine)
+					updated = true
+					logger.Info("Updated %s: replaced 127.0.1.1 line", hostsFile)
+				}
 			} else {
 				newLines = append(newLines, line)
 			}
@@ -98,13 +108,25 @@ func UpdateHosts(oldName, newName, fqdn string, mode UpdateMode, dryRun bool, lo
 				newLines = append(newLines, line)
 			}
 		}
+	} else {
+		newLines = append(newLines, lines...)
 	}
 
 	// 如果没有更新，插入新行
 	if !updated {
-		for i, line := range lines {
-			if strings.HasPrefix(line, "127.0.0.1") {
-				newLines = append(newLines[:i+1], append([]string{newLine}, newLines[i+1:]...)...)
+		for _, line := range newLines {
+			if strings.TrimSpace(line) == newLine {
+				updated = true
+				break
+			}
+		}
+	}
+
+	if !updated {
+		for i, line := range newLines {
+			if strings.HasPrefix(strings.TrimSpace(line), "127.0.0.1") {
+				insertAt := i + 1
+				newLines = append(newLines[:insertAt], append([]string{newLine}, newLines[insertAt:]...)...)
 				updated = true
 				logger.Info("Updated %s: inserted after 127.0.0.1", hostsFile)
 				break
@@ -125,7 +147,7 @@ func UpdateHosts(oldName, newName, fqdn string, mode UpdateMode, dryRun bool, lo
 		return nil
 	}
 
-	if err := system.SafeWrite(hostsFile, data, 0644); err != nil {
+	if err := safeWriteFn(hostsFile, data, 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", hostsFile, err)
 	}
 
@@ -149,6 +171,10 @@ func GetHostsEntries() ([]string, error) {
 		if line != "" && !strings.HasPrefix(line, "#") {
 			entries = append(entries, line)
 		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read %s: %w", hostsFile, err)
 	}
 
 	return entries, nil

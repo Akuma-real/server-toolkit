@@ -22,6 +22,9 @@ func main() {
 
 	cfg, err := internal.Load()
 	if err != nil || cfg == nil {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to load config, using defaults: %v\n", err)
+		}
 		cfg = internal.Default()
 	}
 	i18n.SetLanguage(cfg.Language)

@@ -2,12 +2,16 @@ package internal
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 )
 
+var (
+	configDir = "/etc/server-toolkit"
+)
+
 const (
-	configDir  = "/etc/server-toolkit"
 	configFile = "config.json"
 )
 
@@ -25,14 +29,16 @@ func Load() (*Config, error) {
 	path := filepath.Join(configDir, configFile)
 	data, err := os.ReadFile(path)
 	if err != nil {
-		// 如果文件不存在，返回默认配置
-		return Default(), nil
+		// 文件不存在：使用默认配置
+		if os.IsNotExist(err) {
+			return Default(), nil
+		}
+		return Default(), fmt.Errorf("failed to read config %s: %w", path, err)
 	}
 
 	var cfg Config
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		// 解析失败，返回默认配置
-		return Default(), nil
+		return Default(), fmt.Errorf("failed to parse config %s: %w", path, err)
 	}
 
 	return &cfg, nil
@@ -42,16 +48,20 @@ func Load() (*Config, error) {
 func Save(cfg *Config) error {
 	// 确保目录存在
 	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return err
+		return fmt.Errorf("failed to create config dir %s: %w", configDir, err)
 	}
 
 	path := filepath.Join(configDir, configFile)
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to encode config: %w", err)
 	}
 
-	return os.WriteFile(path, data, 0644)
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("failed to write config %s: %w", path, err)
+	}
+
+	return nil
 }
 
 // Default 返回默认配置

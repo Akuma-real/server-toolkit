@@ -126,9 +126,9 @@ func (m *ServiceManager) IsActive(serviceName string) (bool, error) {
 
 	// 尝试 rc-service
 	if _, err := exec.LookPath("rc-service"); err == nil {
-		// rc-service 没有直接的 is-active 命令
-		// 需要使用其他方法
-		return true, nil
+		cmd := exec.Command("rc-service", serviceName, "status")
+		err := cmd.Run()
+		return err == nil, nil
 	}
 
 	return false, fmt.Errorf("no service manager found")

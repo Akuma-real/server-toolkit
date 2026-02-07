@@ -22,7 +22,7 @@
 ## 系统要求
 
 - Linux (Debian, Ubuntu, AlmaLinux, Rocky, CentOS)
-- Go 1.22+ (仅编译时)
+- Go 1.25+ (仅编译时)
 
 ## 快速开始
 

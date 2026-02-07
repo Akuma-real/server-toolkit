@@ -25,9 +25,9 @@ test:
 test-integration:
 	@echo "Running integration tests..."
 	@echo "Testing on Debian 12..."
-	docker run --rm -v $(PWD):/app debian:12 sh -c "cd /app && apt-get update -qq && apt-get install -y golang && go test ./..."
+	docker run --rm -v $(PWD):/app golang:1.25-bookworm sh -c "cd /app && go test ./..."
 	@echo "Testing on AlmaLinux 9..."
-	docker run --rm -v $(PWD):/app almalinux:9 sh -c "cd /app && dnf install -y golang && go test ./..."
+	docker run --rm -v $(PWD):/app golang:1.25-alpine sh -c "cd /app && go test ./..."
 
 # 代码格式化
 fmt:

@@ -7,6 +7,14 @@ REPO="Akuma-real/server-toolkit"
 BINARY="server-toolkit"
 INSTALL_DIR="/usr/local/bin"
 
+require_cmd() {
+    local cmd="$1"
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "缺少依赖命令: $cmd"
+        exit 1
+    fi
+}
+
 # 参数
 NIGHTLY=false
 YES=false
@@ -69,6 +77,9 @@ as_root() {
 }
 
 # 检测系统
+require_cmd curl
+require_cmd sha256sum
+
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 
@@ -121,12 +132,29 @@ fi
 
 echo "最新版本: $VERSION"
 
+# 下载校验文件（checksums.txt 或 checksums.sha256）
+CHECKSUM_URL_BASE="https://github.com/${REPO}/releases/download/${VERSION}"
+CHECKSUM_FILE=""
+TMP_SUM="$(mktemp -t "${BINARY}.sum.XXXXXX")"
+
+if curl -fsSL "${CHECKSUM_URL_BASE}/checksums.txt" -o "$TMP_SUM" 2>/dev/null; then
+    CHECKSUM_FILE="checksums.txt"
+elif curl -fsSL "${CHECKSUM_URL_BASE}/checksums.sha256" -o "$TMP_SUM" 2>/dev/null; then
+    CHECKSUM_FILE="checksums.sha256"
+else
+    echo "未找到校验文件（checksums.txt/checksums.sha256），停止安装。"
+    exit 1
+fi
+
+echo "已下载校验文件: ${CHECKSUM_FILE}"
+
 # 下载
 URL="https://github.com/${REPO}/releases/download/${VERSION}/${BINARY}-${OS}-${ARCH}"
 echo "正在下载 $URL..."
 TMP_FILE="$(mktemp -t "${BINARY}.XXXXXX")"
 cleanup() {
     rm -f "$TMP_FILE"
+    rm -f "${TMP_SUM:-}"
 }
 trap cleanup EXIT
 
@@ -134,6 +162,23 @@ curl -fsSL "$URL" -o "$TMP_FILE" || {
     echo "下载失败"
     exit 1
 }
+
+# 校验 SHA256
+EXPECTED_SUM="$( (sed -nE "s/^([a-fA-F0-9]{64})[[:space:]]+\*?${BINARY}-${OS}-${ARCH}$/\1/p" "$TMP_SUM" || true) | head -n 1 )"
+if [ -z "$EXPECTED_SUM" ]; then
+    echo "校验文件中未找到 ${BINARY}-${OS}-${ARCH} 的 SHA256，停止安装。"
+    exit 1
+fi
+
+ACTUAL_SUM="$(sha256sum "$TMP_FILE" | awk '{print $1}')"
+if [ "$EXPECTED_SUM" != "$ACTUAL_SUM" ]; then
+    echo "SHA256 校验失败，停止安装。"
+    echo "expected: $EXPECTED_SUM"
+    echo "actual:   $ACTUAL_SUM"
+    exit 1
+fi
+
+echo "SHA256 校验通过。"
 
 # 安装
 echo "正在安装 $BINARY..."
