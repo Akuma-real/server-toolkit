@@ -91,7 +91,7 @@ func NewHostnameWizard(parent tui.MenuModel, cfg *internal.Config, logger *inter
 }
 
 func (m HostnameWizardModel) Init() tea.Cmd {
-	return textinput.Blink
+	return initRefreshTickerCmd(textinput.Blink)
 }
 
 func (m HostnameWizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -207,7 +207,7 @@ func (m HostnameWizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case hostnameWizardStepFQDN:
 		m.fqdnInput, cmd = m.fqdnInput.Update(msg)
 	}
-	return m, cmd
+	return m, keepRefreshTickerCmd(msg, cmd)
 }
 
 func (m HostnameWizardModel) View() string {
@@ -427,7 +427,7 @@ func NewCloudInitPreserveModel(parent tui.MenuModel, cfg *internal.Config, logge
 	}
 }
 
-func (m CloudInitPreserveModel) Init() tea.Cmd { return nil }
+func (m CloudInitPreserveModel) Init() tea.Cmd { return initRefreshTickerCmd(nil) }
 
 func (m CloudInitPreserveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -469,7 +469,7 @@ func (m CloudInitPreserveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, nil
+	return m, keepRefreshTickerCmd(msg, nil)
 }
 
 func (m CloudInitPreserveModel) View() string {

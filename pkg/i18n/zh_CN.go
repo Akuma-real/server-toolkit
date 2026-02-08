@@ -71,14 +71,18 @@ var zhCN = map[string]string{
 	"ssh_wizard_no_keys":             "未检测到已安装的公钥，请先安装 SSH 公钥后再禁用密码登录",
 
 	// 设置
-	"settings_title":      "设置",
-	"settings_language":   "语言设置",
-	"settings_dryrun":     "Dry-run 模式",
-	"settings_loglevel":   "日志级别",
-	"settings_autoupdate": "自动更新",
-	"settings_lang_curr":  "当前: %s",
-	"settings_dryrun_on":  "开启后只显示操作，不实际执行",
-	"settings_dryrun_off": "关闭后将实际执行操作",
+	"settings_title":       "设置",
+	"settings_language":    "语言设置",
+	"settings_dryrun":      "Dry-run 模式",
+	"settings_loglevel":    "日志级别",
+	"settings_autoupdate":  "自动更新",
+	"settings_lang_curr":   "当前: %s",
+	"settings_dryrun_on":   "开启后只显示操作，不实际执行",
+	"settings_dryrun_off":  "关闭后将实际执行操作",
+	"settings_saved":       "设置已保存",
+	"settings_save_failed": "保存设置失败: %v",
+	"update_available":     "发现新版本: %s",
+	"update_check_failed":  "更新检查失败",
 
 	// 通用
 	"confirm":      "确认执行此操作？",

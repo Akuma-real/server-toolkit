@@ -14,6 +14,7 @@ type Translator struct {
 
 var (
 	defaultTranslator *Translator
+	translatorMu      sync.RWMutex
 	languages         = make(map[string]map[string]string)
 	languagesMu       sync.RWMutex
 )
@@ -32,21 +33,29 @@ func SetLanguage(lang string) {
 		languagesMu.RUnlock()
 	}
 
-	defaultTranslator = &Translator{
+	translator := &Translator{
 		lang: lang,
 		data: data,
 	}
+
+	translatorMu.Lock()
+	defaultTranslator = translator
+	translatorMu.Unlock()
 }
 
 // T 获取翻译
 func T(key string, args ...interface{}) string {
-	if defaultTranslator == nil {
+	translatorMu.RLock()
+	translator := defaultTranslator
+	translatorMu.RUnlock()
+
+	if translator == nil {
 		return key
 	}
 
-	defaultTranslator.mu.RLock()
-	format, ok := defaultTranslator.data[key]
-	defaultTranslator.mu.RUnlock()
+	translator.mu.RLock()
+	format, ok := translator.data[key]
+	translator.mu.RUnlock()
 
 	if !ok {
 		return key
@@ -67,10 +76,14 @@ func RegisterLanguage(lang string, data map[string]string) {
 
 // GetLanguage 获取当前语言
 func GetLanguage() string {
-	if defaultTranslator == nil {
+	translatorMu.RLock()
+	translator := defaultTranslator
+	translatorMu.RUnlock()
+
+	if translator == nil {
 		return "zh_CN"
 	}
-	return defaultTranslator.lang
+	return translator.lang
 }
 
 // GetAvailableLanguages 获取可用语言列表

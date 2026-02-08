@@ -6,6 +6,8 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -16,6 +18,23 @@ import (
 )
 
 var version = "dev"
+
+type updateStatus struct {
+	Available   bool
+	Latest      string
+	CheckFailed bool
+}
+
+type updateStateSnapshot struct {
+	generation int64
+	status     updateStatus
+}
+
+var (
+	updateStateMu         sync.RWMutex
+	currentUpdateSnapshot updateStateSnapshot
+	updateCheckGeneration atomic.Int64
+)
 
 func main() {
 	i18n.Init()
@@ -37,9 +56,9 @@ func main() {
 	}
 
 	logger := newLogger(cfg)
+	startAsyncUpdateCheck(cfg)
 
-	subtitle := buildSubtitle()
-	model := buildMainMenu(subtitle, cfg, logger)
+	model := buildMainMenu(cfg, logger)
 
 	if _, err := tea.NewProgram(model).Run(); err != nil {
 		logger.Error("TUI exited with error: %v", err)
@@ -61,7 +80,7 @@ func newLogger(cfg *internal.Config) *internal.Logger {
 	return internal.NewLogger(level, out)
 }
 
-func buildSubtitle() string {
+func buildSubtitle(updateState updateStatus) string {
 	var parts []string
 
 	parts = append(parts, i18n.T("app_version", version))
@@ -72,11 +91,18 @@ func buildSubtitle() string {
 
 	parts = append(parts, fmt.Sprintf("GOOS=%s GOARCH=%s", runtime.GOOS, runtime.GOARCH))
 
+	if updateState.Available {
+		parts = append(parts, i18n.T("update_available", updateState.Latest))
+	} else if updateState.CheckFailed {
+		parts = append(parts, i18n.T("update_check_failed"))
+	}
+
 	return strings.Join(parts, "\n")
 }
 
-func buildMainMenu(subtitle string, cfg *internal.Config, logger *internal.Logger) tui.MenuModel {
+func buildMainMenu(cfg *internal.Config, logger *internal.Logger) tui.MenuModel {
 	unimplemented := i18n.T("menu_unimplemented")
+	subtitle := buildSubtitle(getUpdateStatus())
 
 	systemMenu := tui.NewMenu(
 		i18n.T("menu_system"),
@@ -106,28 +132,105 @@ func buildMainMenu(subtitle string, cfg *internal.Config, logger *internal.Logge
 		},
 	).SetUnimplementedMessage(unimplemented)
 
-	settingsMenu := tui.NewMenu(
-		i18n.T("menu_settings"),
-		"",
-		[]tui.MenuItem{
-			{ID: "lang", Label: i18n.T("settings_language")},
-			{ID: "dryrun", Label: i18n.T("settings_dryrun")},
-			{ID: "loglevel", Label: i18n.T("settings_loglevel")},
-			{ID: "autoupdate", Label: i18n.T("settings_autoupdate")},
-			{ID: "back", Label: i18n.T("menu_back"), Action: func() tea.Cmd { return func() tea.Msg { return tui.ParentMenuMsg{} } }},
-		},
-	).SetUnimplementedMessage(unimplemented)
-
 	mainMenu := tui.NewMenu(
 		i18n.T("app_title"),
 		subtitle,
 		[]tui.MenuItem{
 			{ID: "system", Label: i18n.T("menu_system"), Submenu: &systemMenu},
 			{ID: "ssh", Label: i18n.T("menu_ssh"), Submenu: &sshMenu},
-			{ID: "settings", Label: i18n.T("menu_settings"), Submenu: &settingsMenu},
+			{ID: "settings", Label: i18n.T("menu_settings"), Next: func(parent tui.MenuModel) tea.Model {
+				return NewSettingsModel(parent, cfg, logger, func() tui.MenuModel {
+					return buildMainMenu(cfg, logger)
+				})
+			}},
 			{ID: "exit", Label: i18n.T("menu_exit"), Action: func() tea.Cmd { return tea.Quit }},
 		},
-	)
+	).SetSubtitleProvider(func() string {
+		return buildSubtitle(getUpdateStatus())
+	}).SetInitCmd(tui.RefreshMenuTickerCmd())
 
 	return mainMenu
+}
+
+func maybeCheckUpdates(logger *internal.Logger) updateStatus {
+	if version == "" || version == "dev" {
+		return updateStatus{}
+	}
+
+	updater := internal.NewUpdater(version, logger)
+	latest, hasUpdate, err := updater.Check()
+	if err != nil {
+		logger.Warn("Auto update check failed: %v", err)
+		return updateStatus{CheckFailed: true}
+	}
+
+	if hasUpdate {
+		logger.Warn("Update available: %s", latest)
+		return updateStatus{Available: true, Latest: latest}
+	}
+
+	return updateStatus{}
+}
+
+func getUpdateStatus() updateStatus {
+	updateStateMu.RLock()
+	defer updateStateMu.RUnlock()
+	return currentUpdateSnapshot.status
+}
+
+func setUpdateStatus(status updateStatus) {
+	updateStateMu.Lock()
+	defer updateStateMu.Unlock()
+	currentUpdateSnapshot.status = status
+}
+
+func clearUpdateStatus() {
+	setUpdateStatus(updateStatus{})
+}
+
+func setUpdateStatusIfGeneration(expected int64, status updateStatus) bool {
+	updateStateMu.Lock()
+	defer updateStateMu.Unlock()
+	if currentUpdateSnapshot.generation != expected {
+		return false
+	}
+	currentUpdateSnapshot.status = status
+	return true
+}
+
+func newUpdateCheckLogger() *internal.Logger {
+	return internal.NewLogger(internal.ERROR, os.Stdout)
+}
+
+func startAsyncUpdateCheck(cfg *internal.Config) {
+	if cfg == nil || !cfg.AutoUpdate {
+		cancelAsyncUpdateCheck()
+		return
+	}
+
+	if version == "" || version == "dev" {
+		cancelAsyncUpdateCheck()
+		return
+	}
+
+	generation := updateCheckGeneration.Add(1)
+	updateStateMu.Lock()
+	currentUpdateSnapshot.generation = generation
+	currentUpdateSnapshot.status = updateStatus{}
+	updateStateMu.Unlock()
+
+	logger := newUpdateCheckLogger()
+
+	go func(expected int64) {
+		status := maybeCheckUpdates(logger)
+		setUpdateStatusIfGeneration(expected, status)
+	}(generation)
+}
+
+func cancelAsyncUpdateCheck() {
+	generation := updateCheckGeneration.Add(1)
+	updateStateMu.Lock()
+	currentUpdateSnapshot.generation = generation
+	currentUpdateSnapshot.status = updateStatus{}
+	updateStateMu.Unlock()
 }

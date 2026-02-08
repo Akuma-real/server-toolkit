@@ -71,14 +71,18 @@ var enUS = map[string]string{
 	"ssh_wizard_no_keys":             "No installed SSH keys detected. Install SSH keys before disabling password login.",
 
 	// Settings
-	"settings_title":      "Settings",
-	"settings_language":   "Language",
-	"settings_dryrun":     "Dry-run Mode",
-	"settings_loglevel":   "Log Level",
-	"settings_autoupdate": "Auto Update",
-	"settings_lang_curr":  "Current: %s",
-	"settings_dryrun_on":  "Enable to preview operations without executing",
-	"settings_dryrun_off": "Disable to actually execute operations",
+	"settings_title":       "Settings",
+	"settings_language":    "Language",
+	"settings_dryrun":      "Dry-run Mode",
+	"settings_loglevel":    "Log Level",
+	"settings_autoupdate":  "Auto Update",
+	"settings_lang_curr":   "Current: %s",
+	"settings_dryrun_on":   "Enable to preview operations without executing",
+	"settings_dryrun_off":  "Disable to actually execute operations",
+	"settings_saved":       "Settings saved",
+	"settings_save_failed": "Failed to save settings: %v",
+	"update_available":     "Update available: %s",
+	"update_check_failed":  "Update check failed",
 
 	// Common
 	"confirm":      "Confirm this operation?",

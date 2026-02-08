@@ -82,7 +82,7 @@ func NewSSHInstallKeysWizard(parent tui.MenuModel, cfg *internal.Config, logger 
 	}
 }
 
-func (m SSHInstallKeysWizard) Init() tea.Cmd { return textinput.Blink }
+func (m SSHInstallKeysWizard) Init() tea.Cmd { return initRefreshTickerCmd(textinput.Blink) }
 
 func (m SSHInstallKeysWizard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -213,7 +213,7 @@ func (m SSHInstallKeysWizard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sshWizardStepSourceValue:
 		m.valueInput, cmd = m.valueInput.Update(msg)
 	}
-	return m, cmd
+	return m, keepRefreshTickerCmd(msg, cmd)
 }
 
 func (m SSHInstallKeysWizard) View() string {
@@ -372,7 +372,7 @@ func NewSSHListKeysModel(parent tui.MenuModel, cfg *internal.Config, logger *int
 	}
 }
 
-func (m SSHListKeysModel) Init() tea.Cmd { return textinput.Blink }
+func (m SSHListKeysModel) Init() tea.Cmd { return initRefreshTickerCmd(textinput.Blink) }
 
 func (m SSHListKeysModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -414,7 +414,7 @@ func (m SSHListKeysModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.step == sshWizardStepUser {
 		m.userInput, cmd = m.userInput.Update(msg)
 	}
-	return m, cmd
+	return m, keepRefreshTickerCmd(msg, cmd)
 }
 
 func (m SSHListKeysModel) View() string {
@@ -501,7 +501,7 @@ func NewSSHDisablePasswordModel(parent tui.MenuModel, cfg *internal.Config, logg
 	}
 }
 
-func (m SSHDisablePasswordModel) Init() tea.Cmd { return textinput.Blink }
+func (m SSHDisablePasswordModel) Init() tea.Cmd { return initRefreshTickerCmd(textinput.Blink) }
 
 func (m SSHDisablePasswordModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -564,7 +564,7 @@ func (m SSHDisablePasswordModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.step == sshWizardStepUser {
 		m.userInput, cmd = m.userInput.Update(msg)
 	}
-	return m, cmd
+	return m, keepRefreshTickerCmd(msg, cmd)
 }
 
 func (m SSHDisablePasswordModel) View() string {

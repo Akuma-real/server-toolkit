@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -22,6 +24,9 @@ type MenuModel struct {
 	selected string
 	parent   *MenuModel
 	status   string
+	initCmd  tea.Cmd
+	// subtitleProvider 用于动态生成副标题（例如异步状态提示）
+	subtitleProvider func() string
 	// unimplementedMsg 用于当菜单项既没有 Submenu 也没有 Action 时的提示文本
 	//（由调用方注入，避免在 tui 包内硬编码 i18n 文案）
 	unimplementedMsg string
@@ -43,7 +48,7 @@ func NewMenu(title, subtitle string, choices []MenuItem) MenuModel {
 
 // Init 初始化菜单
 func (m MenuModel) Init() tea.Cmd {
-	return nil
+	return m.initCmd
 }
 
 // Update 更新菜单状态
@@ -54,6 +59,10 @@ func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return *m.parent, nil
 		}
 		return m, nil
+
+	case RefreshMenuMsg:
+		// 用于触发重新渲染（如异步状态更新后）
+		return m, refreshMenuTickerCmd()
 
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -115,6 +124,10 @@ func (m MenuModel) View() string {
 		return ""
 	}
 
+	if m.subtitleProvider != nil {
+		m.subtitle = m.subtitleProvider()
+	}
+
 	// 构建菜单内容
 	var content string
 
@@ -149,6 +162,18 @@ func (m MenuModel) View() string {
 	return BorderStyle.Width(62).Render(content)
 }
 
+// SetInitCmd 设置菜单 Init 时返回的命令
+func (m MenuModel) SetInitCmd(cmd tea.Cmd) MenuModel {
+	m.initCmd = cmd
+	return m
+}
+
+// SetSubtitleProvider 设置副标题动态提供器
+func (m MenuModel) SetSubtitleProvider(provider func() string) MenuModel {
+	m.subtitleProvider = provider
+	return m
+}
+
 // SetParent 设置父菜单
 func (m MenuModel) SetParent(parent *MenuModel) MenuModel {
 	m.parent = parent
@@ -163,6 +188,20 @@ func (m MenuModel) SetUnimplementedMessage(msg string) MenuModel {
 
 // ParentMenuMsg 父菜单消息
 type ParentMenuMsg struct{}
+
+// RefreshMenuMsg 触发菜单重新渲染的消息
+type RefreshMenuMsg struct{}
+
+func refreshMenuTickerCmd() tea.Cmd {
+	return tea.Tick(1500*time.Millisecond, func(_ time.Time) tea.Msg {
+		return RefreshMenuMsg{}
+	})
+}
+
+// RefreshMenuTickerCmd 导出刷新 ticker 命令，用于菜单初始化时启动自动刷新循环。
+func RefreshMenuTickerCmd() tea.Cmd {
+	return refreshMenuTickerCmd()
+}
 
 // SelectedMenuMsg 选中菜单消息
 type SelectedMenuMsg struct {
